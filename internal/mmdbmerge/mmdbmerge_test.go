@@ -108,3 +108,67 @@ func TestMerge_NamespacesAndPreserves(t *testing.T) {
 		t.Errorf("vendor.asn = %v, want 15169", vendor["asn"])
 	}
 }
+
+// TestMerge_ScalarRecord verifies that an MMDB whose top-level records are not
+// maps (here, a scalar string) still merges: the scalar is placed under the
+// namespace key rather than aborting the merge.
+func TestMerge_ScalarRecord(t *testing.T) {
+	dir := t.TempDir()
+
+	// Build a source MMDB whose record is a bare string, not a map.
+	srcPath := filepath.Join(dir, "scalar.mmdb")
+	tree, err := mmdbwriter.New(mmdbwriter.Options{DatabaseType: "Test", RecordSize: 28})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, network, _ := net.ParseCIDR("1.2.3.0/24")
+	if err := tree.Insert(network, mmdbtype.String("just-a-string")); err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Create(srcPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tree.WriteTo(f); err != nil {
+		f.Close()
+		t.Fatal(err)
+	}
+	f.Close()
+
+	dst, err := mmdbwriter.New(mmdbwriter.Options{DatabaseType: "Test", RecordSize: 28})
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err := Merge(dst, srcPath, "vendor")
+	if err != nil {
+		t.Fatalf("Merge: %v", err)
+	}
+	if n != 1 {
+		t.Errorf("merged = %d, want 1", n)
+	}
+
+	outPath := filepath.Join(dir, "out.mmdb")
+	f2, err := os.Create(outPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := dst.WriteTo(f2); err != nil {
+		f2.Close()
+		t.Fatal(err)
+	}
+	f2.Close()
+
+	db, err := maxminddb.Open(outPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	var result map[string]any
+	if err := db.Lookup(net.ParseIP("1.2.3.4"), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result["vendor"] != "just-a-string" {
+		t.Errorf("vendor = %v, want just-a-string", result["vendor"])
+	}
+}

@@ -72,8 +72,8 @@ Requires an [ICANN CZDS account](https://czds.icann.org/). Credentials may be se
 ```yaml
 sources:
   czds:
-    username: you@example.com   # or $CZDS_USERNAME
-    password: yourpassword      # or $CZDS_PASSWORD
+    username: you@example.com   # omit/leave empty to use $CZDS_USERNAME
+    password: yourpassword      # omit/leave empty to use $CZDS_PASSWORD
     zones: [com, net, org]      # omit for all zones you have access to
     data_dir: ./czds-data       # cached zone files, reused on later runs
     local_only: false           # true: process cached files without the API

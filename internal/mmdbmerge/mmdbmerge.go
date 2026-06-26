@@ -28,12 +28,14 @@ func Merge(tree *mmdbwriter.Tree, srcPath, key string) (int, error) {
 	var merged int
 	nets := db.Networks(maxminddb.SkipAliasedNetworks)
 	for nets.Next() {
-		var raw map[string]any
+		// Decode into `any` rather than a map: MMDB records can have any
+		// top-level type (map, slice, or scalar). toMMDBType handles the shape.
+		var raw any
 		network, err := nets.Network(&raw)
 		if err != nil {
 			return merged, fmt.Errorf("decoding network from %s: %w", srcPath, err)
 		}
-		if len(raw) == 0 {
+		if raw == nil {
 			continue
 		}
 

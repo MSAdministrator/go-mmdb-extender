@@ -45,6 +45,26 @@ func TestRegister_DuplicatePanics(t *testing.T) {
 	Register("dup", func(map[string]any) (Source, error) { return nil, nil })
 }
 
+func TestRegister_RejectsEmptyName(t *testing.T) {
+	resetRegistry(t)
+	defer func() {
+		if recover() == nil {
+			t.Error("expected panic on empty name")
+		}
+	}()
+	Register("", func(map[string]any) (Source, error) { return nil, nil })
+}
+
+func TestRegister_RejectsNilFactory(t *testing.T) {
+	resetRegistry(t)
+	defer func() {
+		if recover() == nil {
+			t.Error("expected panic on nil factory")
+		}
+	}()
+	Register("nilfac", nil)
+}
+
 func TestBuild_SortedOrder(t *testing.T) {
 	resetRegistry(t)
 	Register("zeta", func(map[string]any) (Source, error) { return stubSource{"zeta"}, nil })

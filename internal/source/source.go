@@ -34,9 +34,16 @@ var (
 )
 
 // Register associates a source name with its factory. It is intended to be
-// called from a source package's init() function. It panics on duplicate
-// registration, which can only happen as a programming error.
+// called from a source package's init() function. It panics on an empty name,
+// a nil factory, or a duplicate registration -- all of which can only happen as
+// programming errors.
 func Register(name string, f Factory) {
+	if name == "" {
+		panic("source: Register called with empty name")
+	}
+	if f == nil {
+		panic("source: Register called with nil factory for " + name)
+	}
 	mu.Lock()
 	defer mu.Unlock()
 	if _, dup := factories[name]; dup {
@@ -49,6 +56,11 @@ func Register(name string, f Factory) {
 func Registered() []string {
 	mu.RLock()
 	defer mu.RUnlock()
+	return sortedNamesLocked()
+}
+
+// sortedNamesLocked returns sorted source names. The caller must hold mu.
+func sortedNamesLocked() []string {
 	names := make([]string, 0, len(factories))
 	for n := range factories {
 		names = append(names, n)
@@ -61,22 +73,32 @@ func Registered() []string {
 // factory for each. Sources are returned in stable (sorted) name order so runs
 // are deterministic. An unknown source name is an error.
 func Build(configs map[string]map[string]any) ([]Source, error) {
-	mu.RLock()
-	defer mu.RUnlock()
-
 	names := make([]string, 0, len(configs))
 	for n := range configs {
 		names = append(names, n)
 	}
 	sort.Strings(names)
 
-	var out []Source
-	for _, name := range names {
+	// Resolve the factories under the lock, then release it before invoking
+	// them: factories are arbitrary code (and may themselves touch the
+	// registry), so calling them while holding the lock risks a deadlock and
+	// needlessly serializes potentially slow config work.
+	selected := make([]Factory, len(names))
+	mu.RLock()
+	for i, name := range names {
 		f, ok := factories[name]
 		if !ok {
-			return nil, fmt.Errorf("unknown source %q (registered: %v)", name, registeredLocked())
+			registered := sortedNamesLocked()
+			mu.RUnlock()
+			return nil, fmt.Errorf("unknown source %q (registered: %v)", name, registered)
 		}
-		s, err := f(configs[name])
+		selected[i] = f
+	}
+	mu.RUnlock()
+
+	var out []Source
+	for i, name := range names {
+		s, err := selected[i](configs[name])
 		if err != nil {
 			return nil, fmt.Errorf("configuring source %q: %w", name, err)
 		}
@@ -85,14 +107,4 @@ func Build(configs map[string]map[string]any) ([]Source, error) {
 		}
 	}
 	return out, nil
-}
-
-// registeredLocked returns sorted source names. Caller must hold mu.
-func registeredLocked() []string {
-	names := make([]string, 0, len(factories))
-	for n := range factories {
-		names = append(names, n)
-	}
-	sort.Strings(names)
-	return names
 }
