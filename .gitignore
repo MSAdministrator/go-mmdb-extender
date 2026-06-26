@@ -8,6 +8,8 @@ czds-data/
 
 # MMDB databases (large binary files)
 *.mmdb
+# ...except small fixtures embedded in tests
+!**/testdata/*.mmdb
 
 # IDE
 .idea/
@@ -17,6 +19,9 @@ czds-data/
 
 # Environment / credentials
 .env
+
+# Local config (may contain credentials); commit config.example.yaml instead
+config.yaml
 
 # OS
 .DS_Store
