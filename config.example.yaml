@@ -1,0 +1,31 @@
+# go-mmdb-extender configuration.
+#
+# Copy to config.yaml and edit. Run with:
+#   ./go-mmdb-extender --config config.yaml
+
+# Base MMDB to extend (any MMDB the mmdbwriter can load).
+input: GeoLite2-ASN.mmdb
+
+# Where to write the enriched MMDB.
+output: extended.mmdb
+
+# Each entry under `sources` enables a registered enrichment source. Every
+# source namespaces its data under its own top-level key (e.g. `ipinfo.*`,
+# `czds.*`) and merges into the tree, so they compose without clobbering each
+# other or the input database.
+sources:
+  # IPinfo MMDB merge (e.g. the free IPinfo Lite database:
+  # https://ipinfo.io/developers/ipinfo-lite-database). Download the .mmdb
+  # yourself and point `path` at it.
+  ipinfo:
+    path: ipinfo_lite.mmdb
+
+  # ICANN CZDS zone-file enrichment. Credentials may also come from the
+  # CZDS_USERNAME / CZDS_PASSWORD environment variables. Omit this block to
+  # skip CZDS entirely.
+  czds:
+    # username: you@example.com
+    # password: yourpassword
+    zones: [com, net, org]   # omit for all zones you have access to
+    data_dir: ./czds-data
+    local_only: false        # true = process cached zone files without the API

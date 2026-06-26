@@ -15,7 +15,57 @@ import (
 	"github.com/maxmind/mmdbwriter/inserter"
 	"github.com/maxmind/mmdbwriter/mmdbtype"
 	"github.com/miekg/dns"
+	"github.com/msadministrator/go-mmdb-extender/internal/source"
 )
+
+func init() {
+	source.Register("czds", factory)
+}
+
+// factory builds a CZDS source from its config block. Recognized keys:
+//
+//	username    string   CZDS account username (falls back to $CZDS_USERNAME)
+//	password    string   CZDS account password (falls back to $CZDS_PASSWORD)
+//	zones       []string specific zones to process (default: all available)
+//	data_dir    string   directory for cached zone files (default: ./czds-data)
+//	local_only  bool     process cached zone files without calling the API
+//
+// It returns (nil, nil) when neither credentials nor local_only are configured,
+// so an empty/placeholder czds block simply disables the source.
+func factory(cfg map[string]any) (source.Source, error) {
+	username, _ := cfg["username"].(string)
+	password, _ := cfg["password"].(string)
+	if username == "" {
+		username = os.Getenv("CZDS_USERNAME")
+	}
+	if password == "" {
+		password = os.Getenv("CZDS_PASSWORD")
+	}
+
+	localOnly, _ := cfg["local_only"].(bool)
+
+	dataDir, _ := cfg["data_dir"].(string)
+	if dataDir == "" {
+		dataDir = "./czds-data"
+	}
+
+	var zones []string
+	if raw, ok := cfg["zones"].([]any); ok {
+		for _, z := range raw {
+			if s, ok := z.(string); ok {
+				if trimmed := strings.TrimSpace(s); trimmed != "" {
+					zones = append(zones, trimmed)
+				}
+			}
+		}
+	}
+
+	if !localOnly && (username == "" || password == "") {
+		return nil, nil
+	}
+
+	return New(username, password, zones, dataDir, localOnly), nil
+}
 
 // Source enriches an MMDB with data from ICANN's Centralized Zone Data Service.
 // For each IP found in zone file A/AAAA records, it adds:
