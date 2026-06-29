@@ -1,7 +1,8 @@
-# Binary output
-go-mmdb-extender
-mmdb-test
-test-build
+# Binary output (anchored to repo root so they don't match cmd/ source dirs)
+/go-mmdb-extender
+/go-mmdb-inspect
+/mmdb-test
+/test-build
 
 # Downloaded zone data
 czds-data/
