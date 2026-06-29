@@ -28,6 +28,12 @@ func main() {
 	}
 	flag.Parse()
 
+	if *samples < 0 {
+		fmt.Fprintln(os.Stderr, "Error: --samples must be >= 0")
+		flag.Usage()
+		os.Exit(2)
+	}
+
 	if flag.NArg() != 1 {
 		flag.Usage()
 		os.Exit(2)
