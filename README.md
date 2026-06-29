@@ -19,7 +19,7 @@ IPinfo ships its datasets as MMDB files, so enrichment is a direct MMDB-to-MMDB 
 
 ```sh
 go install github.com/msadministrator/go-mmdb-extender/cmd/go-mmdb-extender@latest
-go install github.com/msadministrator/go-mmdb-extender/cmd/mmdb-test@latest
+go install github.com/msadministrator/go-mmdb-extender/cmd/go-mmdb-inspect@latest
 ```
 
 Or build from source:
@@ -28,7 +28,7 @@ Or build from source:
 git clone https://github.com/msadministrator/go-mmdb-extender.git
 cd go-mmdb-extender
 go build ./cmd/go-mmdb-extender
-go build ./cmd/mmdb-test
+go build ./cmd/go-mmdb-inspect
 ```
 
 ## Usage
@@ -83,11 +83,18 @@ If credentials are absent and `local_only` is false, the CZDS source is silently
 
 ### Inspect the output
 
+The `go-mmdb-inspect` command inspects any MMDB file: it prints the database metadata, iterates every network (reporting the total and showing a few sample records), and can perform a direct IP lookup.
+
 ```sh
-./mmdb-test extended.mmdb
+./go-mmdb-inspect extended.mmdb                   # metadata + network count + samples
+./go-mmdb-inspect --samples 5 extended.mmdb       # show 5 sample records
+./go-mmdb-inspect --lookup 8.8.8.8 extended.mmdb  # also look up a single IP
 ```
 
-This prints database metadata, iterates all networks, shows sample records, and performs a direct IP lookup.
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--samples` | `3` | Number of sample records to print while iterating networks |
+| `--lookup` | *(none)* | Look up a single IP address and print its record |
 
 ## Config reference
 
