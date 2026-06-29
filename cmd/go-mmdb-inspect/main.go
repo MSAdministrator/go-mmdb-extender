@@ -128,5 +128,5 @@ func indentJSON(v any, prefix string) string {
 	if err != nil {
 		return fmt.Sprintf("%s%v", prefix, v)
 	}
-	return prefix + string(b)
+	return string(b)
 }
